@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#020814">
+<title>Astro Ibiza — Observatorio 4.0</title>
+<style>
+:root{--bg:#020814;--card:#06172b;--line:#1269ad;--text:#f4f8ff;--muted:#9db6d2;--blue:#168cff;--sun:#ffd84d}
+*{box-sizing:border-box}html,body{margin:0;background:radial-gradient(circle at 50% -10%,#194879,#061326 45%,#01050c 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{padding-bottom:env(safe-area-inset-bottom)}button,input{font:inherit}.wrap{max-width:900px;margin:auto;padding:18px 14px 38px}
+.top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.brand{font-size:42px;font-weight:900;letter-spacing:-2px;line-height:.95}.version{border:1px solid #1592ff;background:#06162b;border-radius:24px;padding:11px 14px;font-weight:800;color:#d9edff;white-space:nowrap}.live{color:#fff}
+.sub{color:var(--muted);font-size:15px;font-weight:650;margin:10px 0 15px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tab{border:1px solid var(--line);background:#06172b;color:#fff;border-radius:20px;padding:16px;font-size:18px;font-weight:850}.tab.active{background:linear-gradient(180deg,#1592ff,#0870cf);box-shadow:0 8px 30px #008cff33}
+.search{display:grid;grid-template-columns:1fr auto;gap:10px;margin:14px 0}.search input{width:100%;background:#06172b;border:1px solid var(--line);color:#fff;border-radius:18px;padding:15px;font-size:17px}.btn{border:1px solid var(--line);background:#06172b;color:#fff;border-radius:18px;padding:14px 18px;font-weight:850}.btn.primary{background:#1287ee}
+.card{background:linear-gradient(180deg,#071b32ee,#031021f7);border:1px solid #1269ad;border-radius:26px;padding:12px;margin-bottom:13px;box-shadow:0 18px 55px #0007}
+#scene{width:100%;display:block;border-radius:21px;background:#000611}
+.citycard h2{font-size:30px;margin:2px 0}.muted{color:var(--muted)}.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}.metric{border:1px solid #174c79;background:#06172b;border-radius:15px;padding:11px}.metric b{display:block;font-size:17px;margin-top:4px}
+.controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.wide{grid-column:1/-1}.small{font-size:13px;color:var(--muted);line-height:1.45}.cities{display:flex;gap:7px;flex-wrap:wrap}.city{border:1px solid #174c79;background:#06172b;border-radius:999px;padding:8px 11px;color:#dcecff}.foot{text-align:center;color:#66809e;font-size:12px;margin-top:12px}
+@media(max-width:600px){.brand{font-size:38px}.version{font-size:12px;padding:9px 10px}.metrics{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">🌍 Astro Ibiza</div>
+    <div class="version"><span class="live">🟢 EN TIEMPO REAL</span><br><span id="clock">--:--:--</span><br><span id="date">--</span></div>
+  </div>
+  <div class="sub">Observatorio 4.0 · Tierra · Sol · Luna · terminador · amanecer · tiempo real</div>
+
+  <div class="tabs">
+    <button class="tab active" id="globalBtn">🌐 Vista global</button>
+    <button class="tab" id="simBtn">◷ Simulación</button>
+  </div>
+
+  <div class="search">
+    <input id="cityInput" value="Ibiza" placeholder="🔎 Buscar ciudad...">
+    <button class="btn primary" id="nowBtn">📍 AHORA</button>
+  </div>
+
+  <div class="card">
+    <canvas id="scene" width="1200" height="760"></canvas>
+  </div>
+
+  <div class="card citycard">
+    <h2 id="cityName">📍 Ibiza</h2>
+    <div class="muted" id="cityCountry">España · Europe/Madrid</div>
+    <div class="metrics">
+      <div class="metric">🕐 Hora local <b id="localTime">--:--:--</b></div>
+      <div class="metric">☀️ Estado <b id="dayState">--</b></div>
+      <div class="metric">🌅 Amanecer <b id="sunrise">--:--</b></div>
+      <div class="metric">🌇 Atardecer <b id="sunset">--:--</b></div>
+      <div class="metric">☀️ Altura solar <b id="alt">--°</b></div>
+      <div class="metric">🧭 Azimut solar <b id="az">--°</b></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>☀️ Seguimiento del Sol</h3>
+    <div class="small">La posición del Sol y el terminador se recalculan continuamente a partir de la fecha, hora y coordenadas seleccionadas. La zona iluminada gira visualmente con el punto subsolar.</div>
+  </div>
+
+  <div class="card">
+    <h3>🌎 Ciudades rápidas</h3>
+    <div class="cities">
+      <button class="city" data-city="Ibiza">Ibiza</button>
+      <button class="city" data-city="Madrid">Madrid</button>
+      <button class="city" data-city="Nueva York">Nueva York</button>
+      <button class="city" data-city="Londres">Londres</button>
+      <button class="city" data-city="Tokio">Tokio</button>
+      <button class="city" data-city="Bogotá">Bogotá</button>
+      <button class="city" data-city="Sídney">Sídney</button>
+    </div>
+  </div>
+
+  <div class="card" id="simulation" hidden>
+    <h3>⏱️ Máquina del tiempo</h3>
+    <div class="controls">
+      <button class="btn" onclick="shift(-3600)">−1 h</button>
+      <button class="btn" onclick="shift(60)">+1 min</button>
+      <button class="btn" onclick="shift(3600)">+1 h</button>
+      <button class="btn primary wide" id="play" onclick="togglePlay()">▶ Reproducir Sol</button>
+    </div>
+  </div>
+  <div class="foot">Astro Ibiza · Observatorio interactivo · cálculos locales en el navegador</div>
+</div>
+
+<script>
+const places={
+ "Ibiza":{lat:38.98,lon:1.43,country:"España · Europe/Madrid",tz:"Europe/Madrid"},
+ "Madrid":{lat:40.4168,lon:-3.7038,country:"España · Europe/Madrid",tz:"Europe/Madrid"},
+ "Nueva York":{lat:40.7128,lon:-74.006,country:"EE. UU. · America/New_York",tz:"America/New_York"},
+ "Londres":{lat:51.5074,lon:-0.1278,country:"Reino Unido · Europe/London",tz:"Europe/London"},
+ "Tokio":{lat:35.6762,lon:139.6503,country:"Japón · Asia/Tokyo",tz:"Asia/Tokyo"},
+ "Bogotá":{lat:4.711,lon:-74.0721,country:"Colombia · America/Bogota",tz:"America/Bogota"},
+ "Sídney":{lat:-33.8688,lon:151.2093,country:"Australia · Australia/Sydney",tz:"Australia/Sydney"}
+};
+let place=places.Ibiza, simDate=new Date(),playing=false,last=performance.now();
+let eventCache={key:"",value:{rise:null,set:null}};
+function getEvents(d,lat,lon){
+ const key=d.getUTCFullYear()+"-"+d.getUTCMonth()+"-"+d.getUTCDate()+"-"+lat+"-"+lon;
+ if(eventCache.key!==key){eventCache={key,value:solarEvents(d,lat,lon)};}
+ return eventCache.value;
+}
+const c=document.getElementById("scene"),ctx=c.getContext("2d"),TAU=Math.PI*2,R=Math.PI/180;
+
+function rad(x){return x*R} function deg(x){return x/R}
+function norm(x){x%=360;return x<0?x+360:x}
+function jd(d){return d.getTime()/86400000+2440587.5}
+function solar(d){
+ const J=jd(d),T=(J-2451545)/36525;
+ const L=norm(280.46646+36000.76983*T+.0003032*T*T);
+ const M=norm(357.52911+35999.05029*T-.0001537*T*T);
+ const C=(1.914602-.004817*T-.000014*T*T)*Math.sin(rad(M))+
+ (.019993-.000101*T)*Math.sin(rad(2*M))+.000289*Math.sin(rad(3*M));
+ const lam=L+C, ob=23.439291-.0130042*T;
+ const ra=deg(Math.atan2(Math.cos(rad(ob))*Math.sin(rad(lam)),Math.cos(rad(lam))));
+ const dec=deg(Math.asin(Math.sin(rad(ob))*Math.sin(rad(lam))));
+ const gmst=norm(280.46061837+360.98564736629*(J-2451545)+.000387933*T*T-T*T*T/38710000);
+ return {dec,subLon:norm(ra-gmst)};
+}
+function sunAt(d,lat,lon){
+ const s=solar(d), H=((lon-s.subLon+540)%360)-180;
+ const alt=deg(Math.asin(Math.sin(rad(lat))*Math.sin(rad(s.dec))+Math.cos(rad(lat))*Math.cos(rad(s.dec))*Math.cos(rad(H))));
+ let az=deg(Math.atan2(Math.sin(rad(H)),Math.cos(rad(H))*Math.sin(rad(lat))-Math.tan(rad(s.dec))*Math.cos(rad(lat))));
+ az=norm(az+180); return {...s,alt,az};
+}
+function localDate(d,tz,opts){return new Intl.DateTimeFormat("es-ES",{timeZone:tz,...opts}).format(d)}
+function clockText(d,tz){return localDate(d,tz,{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false})}
+function dateText(d,tz){return localDate(d,tz,{weekday:"long",day:"2-digit",month:"long",year:"numeric"})}
+function solarEvents(d,lat,lon){
+ const day=new Date(d);
+ const y=day.getUTCFullYear(), mo=day.getUTCMonth(), da=day.getUTCDate();
+ let rise=null,set=null,prevAlt=null;
+ // 5-minute scan: fast enough for mobile and precise enough for the display.
+ for(let m=0;m<1440;m+=5){
+   const a=new Date(Date.UTC(y,mo,da,0,m,0));
+   const alt=sunAt(a,lat,lon).alt;
+   if(prevAlt!==null){
+     if(prevAlt<-.833 && alt>=-.833 && rise===null) rise=m;
+     if(prevAlt>=-.833 && alt<-.833 && set===null) set=m;
+   }
+   prevAlt=alt;
+ }
+ return {rise,set};
+}
+function fmtMin(m){if(m==null)return "--:--";return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")}
+
+function project(lat,lon,cx,cy,rx,ry,s){
+ const slat=rad(s.dec), slon=rad(s.subLon), la=rad(lat),lo=rad(lon);
+ const x=Math.sin(lo-slon)*Math.cos(la), y=-Math.sin(la), z=Math.cos(lo-slon)*Math.cos(la);
+ return {x:cx+x*rx,y:cy+y*ry,z};
+}
+function draw(){
+ const w=c.width,h=c.height,cx=w/2,cy=h*.58,rx=w*.445,ry=h*.315;
+ ctx.clearRect(0,0,w,h);
+ // stars
+ for(let i=0;i<180;i++){let x=(i*83)%w,y=(i*47)%h;ctx.fillStyle=`rgba(255,255,255,${.18+((i*17)%60)/100})`;ctx.fillRect(x,y,1.5,1.5)}
+ // moon
+ ctx.fillStyle="#dfe8f2";ctx.shadowBlur=25;ctx.shadowColor="#fff";ctx.beginPath();ctx.arc(w*.84,h*.17,31,0,TAU);ctx.fill();ctx.shadowBlur=0;
+ ctx.fillStyle="#8d98a7";for(let i=0;i<8;i++){let x=w*.84-20+(i*17)%40,y=h*.17-18+(i*11)%36;ctx.beginPath();ctx.arc(x,y,3+(i%3),0,TAU);ctx.fill()}
+ // earth glow and body
+ ctx.shadowBlur=38;ctx.shadowColor="#1599ff99";ctx.fillStyle="#06385e";ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,TAU);ctx.fill();ctx.shadowBlur=0;
+ const g=ctx.createRadialGradient(cx-rx*.35,cy-ry*.5,10,cx,cy,rx);
+ g.addColorStop(0,"#38a4bf");g.addColorStop(.45,"#0b5574");g.addColorStop(1,"#021b31");
+ ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,TAU);ctx.fill();
+ // grid
+ ctx.save();ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,TAU);ctx.clip();ctx.strokeStyle="rgba(180,230,255,.16)";ctx.lineWidth=2;
+ for(let a=-60;a<=60;a+=20){ctx.beginPath();ctx.ellipse(cx,cy+Math.sin(rad(a))*ry,rx*Math.cos(rad(a)),ry*.16*Math.cos(rad(a)),0,0,TAU);ctx.stroke()}
+ for(let a=-60;a<=60;a+=20){ctx.beginPath();ctx.ellipse(cx+Math.sin(rad(a))*rx,cy,rx*.16,ry,0,0,TAU);ctx.stroke()}
+ // continents, stylized
+ const land="#4aa96c";
+ const polys=[
+ [[-.72,-.02],[-.55,-.38],[-.33,-.34],[-.23,-.12],[-.33,.08],[-.46,.16],[-.55,.38],[-.72,.25]],
+ [[-.22,-.14],[-.05,-.30],[.13,-.17],[.20,.05],[.10,.26],[.03,.48],[-.10,.42],[-.18,.16]],
+ [[.12,-.43],[.38,-.48],[.58,-.30],[.57,-.08],[.37,-.03],[.25,-.18]],
+ [[.43,.10],[.68,.04],[.78,.25],[.65,.42],[.47,.35]]
+ ];
+ ctx.fillStyle=land;
+ polys.forEach(p=>{ctx.beginPath();p.forEach((q,i)=>{let x=cx+q[0]*rx,y=cy+q[1]*ry;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.closePath();ctx.fill()});
+ // Real-time day/night shading, using the subsolar longitude/declination.
+ const s=solar(simDate), slat=rad(s.dec), slon=rad(s.subLon);
+ ctx.save();ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,TAU);ctx.clip();
+ const nightX=cx-Math.sin(slon)*rx*.55;
+ const ng=ctx.createLinearGradient(nightX-rx,0,nightX+rx,0);
+ const warm=Math.max(.15,Math.min(.75,Math.cos(slat)*.45+.35));
+ ng.addColorStop(0,"rgba(0,4,13,.92)");
+ ng.addColorStop(.46,"rgba(0,6,18,.70)");
+ ng.addColorStop(.52,"rgba(0,8,20,.18)");
+ ng.addColorStop(.60,"rgba(0,10,22,.02)");
+ ng.addColorStop(1,"rgba(0,0,0,0)");
+ ctx.fillStyle=ng;ctx.fillRect(cx-rx,cy-ry,rx*2,ry*2);
+ // bright solar glow on the illuminated side
+ const glow=ctx.createRadialGradient(
+   cx+Math.sin(slon)*rx*.38,cy-Math.sin(slat)*ry*.22,5,
+   cx+Math.sin(slon)*rx*.38,cy-Math.sin(slat)*ry*.22,rx*.9);
+ glow.addColorStop(0,"rgba(255,236,130,.30)");
+ glow.addColorStop(.45,"rgba(255,220,80,.10)");
+ glow.addColorStop(1,"rgba(255,210,50,0)");
+ ctx.fillStyle=glow;ctx.fillRect(cx-rx,cy-ry,rx*2,ry*2);
+ ctx.restore();
+ // visible terminator curve
+ ctx.save();ctx.strokeStyle="rgba(255,236,130,.80)";ctx.lineWidth=3;ctx.shadowBlur=12;ctx.shadowColor="#ffd84d";
+ ctx.beginPath();ctx.ellipse(cx+Math.sin(slon)*rx*.02,cy,Math.max(12,Math.abs(Math.cos(slon))*rx*.12),ry,0,0,TAU);ctx.stroke();ctx.restore();
+ // city marker
+ const p=project(place.lat,place.lon,cx,cy,rx,ry,s);
+ if(p.z>0){
+   ctx.fillStyle="#ff4d76";ctx.beginPath();ctx.arc(p.x,p.y,9,0,TAU);ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=3;ctx.stroke();
+   ctx.font="800 20px -apple-system";ctx.fillStyle="#fff";ctx.fillText(place===places.Ibiza?"Ibiza":document.getElementById("cityName").textContent.replace("📍 ",""),p.x+14,p.y-10);
+ }
+ ctx.restore();
+ // edge/ice-like horizon for visual reference
+ ctx.strokeStyle="#bcecff";ctx.lineWidth=3;ctx.shadowBlur=15;ctx.shadowColor="#65cfff";ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,TAU);ctx.stroke();ctx.shadowBlur=0;
+ // sun position in sky relative to subsolar longitude
+ const sx=cx+Math.sin(rad(s.subLon))*rx*1.18, sy=cy-radToY(s.dec,ry)*1.0-ry*.92;
+ const sg=ctx.createRadialGradient(sx,sy,3,sx,sy,55);sg.addColorStop(0,"#fff");sg.addColorStop(.25,"#ffd84d");sg.addColorStop(1,"rgba(255,185,0,0)");
+ ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sx,sy,60,0,TAU);ctx.fill();ctx.fillStyle="#ffd84d";ctx.beginPath();ctx.arc(sx,sy,25,0,TAU);ctx.fill();
+ ctx.font="800 17px -apple-system";ctx.fillStyle="#fff";ctx.fillText("☀ SOL",sx-28,sy-38);
+ // labels
+ ctx.font="700 16px -apple-system";ctx.fillStyle="#eaf6ff";ctx.fillText("DÍA",24,38);ctx.fillText("NOCHE",24,h-24);
+ ctx.font="600 13px -apple-system";ctx.fillStyle="#9ebbd5";ctx.fillText("Terminador calculado en tiempo real",w-245, h-24);
+ updateInfo(s);
+}
+function radToY(dec,ry){return Math.sin(rad(dec))*ry}
+function updateInfo(s){
+ const sp=sunAt(simDate,place.lat,place.lon),ev=getEvents(simDate,place.lat,place.lon);
+ document.getElementById("clock").textContent=clockText(simDate,place.tz);
+ document.getElementById("date").textContent=dateText(simDate,place.tz);
+ document.getElementById("cityName").textContent="📍 "+Object.keys(places).find(k=>places[k]===place);
+ document.getElementById("cityCountry").textContent=place.country;
+ document.getElementById("localTime").textContent=clockText(simDate,place.tz);
+ document.getElementById("dayState").textContent=sp.alt>=-0.833?"☀️ Día":"🌙 Noche";
+ if(Math.abs(sp.alt)<3)document.getElementById("dayState").textContent=sp.alt>0?"🌅 Amaneciendo":"🌇 Atardeciendo";
+ document.getElementById("alt").textContent=sp.alt.toFixed(1)+"°";
+ document.getElementById("az").textContent=sp.az.toFixed(0)+"°";
+ document.getElementById("sunrise").textContent=fmtMin(ev.rise);
+ document.getElementById("sunset").textContent=fmtMin(ev.set);
+}
+function selectCity(name){if(places[name]){place=places[name];document.getElementById("cityInput").value=name;draw()}}
+document.querySelectorAll(".city").forEach(b=>b.onclick=()=>selectCity(b.dataset.city));
+document.getElementById("nowBtn").onclick=()=>{simDate=new Date();draw()};
+document.getElementById("cityInput").addEventListener("change",e=>{let q=e.target.value.trim().toLowerCase();let k=Object.keys(places).find(n=>n.toLowerCase()===q)||Object.keys(places).find(n=>n.toLowerCase().includes(q));if(k)selectCity(k)});
+document.getElementById("simBtn").onclick=()=>{document.getElementById("simulation").hidden=false;document.getElementById("simBtn").classList.add("active");document.getElementById("globalBtn").classList.remove("active")};
+document.getElementById("globalBtn").onclick=()=>{document.getElementById("simulation").hidden=true;document.getElementById("globalBtn").classList.add("active");document.getElementById("simBtn").classList.remove("active")};
+function shift(sec){simDate=new Date(simDate.getTime()+sec*1000);draw()}
+function togglePlay(){playing=!playing;document.getElementById("play").textContent=playing?"⏸ Pausar Sol":"▶ Reproducir Sol";last=performance.now();if(playing)requestAnimationFrame(loop)}
+function loop(t){if(!playing)return;let dt=Math.min(.15,(t-last)/1000);last=t;simDate=new Date(simDate.getTime()+dt*600000);draw();requestAnimationFrame(loop)}
+try{
+  draw();
+}catch(err){
+  console.error(err);
+  document.getElementById("clock").textContent="ERROR";
+  document.getElementById("date").textContent="Recarga la página";
+  const c=document.getElementById("scene"),x=c.getContext("2d");
+  x.fillStyle="#06172b";x.fillRect(0,0,c.width,c.height);
+  x.fillStyle="#fff";x.font="700 30px -apple-system";x.fillText("Astro Ibiza",55,80);
+  x.font="500 22px -apple-system";x.fillStyle="#9db6d2";x.fillText("Inicializando observatorio…",55,125);
+}
+</script>
+</body>
+</html>
