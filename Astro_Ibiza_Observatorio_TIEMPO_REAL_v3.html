@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#020812">
+<title>Astro Ibiza — Observatorio en tiempo real</title>
+<style>
+:root{--bg:#020812;--panel:#06182c;--line:#168cff;--text:#eef7ff;--muted:#9db6d0;--gold:#ffd43b}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{min-height:100vh;background:radial-gradient(circle at 50% 5%,#163c67 0,#06172a 38%,#020812 80%)}
+.app{max-width:1180px;margin:auto;padding:14px}
+header{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px}
+.brand{font-size:clamp(32px,6vw,56px);font-weight:950;letter-spacing:-2px}
+.sub{color:var(--muted);font-size:clamp(13px,2vw,19px)}
+.live{border:1px solid #168cff;border-radius:18px;padding:10px 14px;text-align:center;background:#041326;white-space:nowrap}
+.tabs,.cities,.cards{display:grid;gap:9px}
+.tabs{grid-template-columns:repeat(4,1fr)}
+button{border:1px solid #1769a9;background:#06182b;color:white;border-radius:15px;padding:12px;font:inherit;font-weight:850;cursor:pointer}
+button:hover,.active{background:linear-gradient(180deg,#168cff,#0964bb);box-shadow:0 0 20px #168cff55}
+.panel{background:linear-gradient(180deg,#071b31,#041224);border:1px solid #155c98;border-radius:23px;padding:12px;margin-top:12px;box-shadow:0 15px 50px #0007}
+.searchrow{display:flex;gap:9px}
+.searchrow input{flex:1;border:1px solid #1769a9;background:#041326;color:white;border-radius:14px;padding:13px;font-size:16px;outline:none}
+.cities{grid-template-columns:repeat(6,1fr);margin-top:10px}
+.city{text-align:left;padding:10px}
+.city small{display:block;color:var(--muted);margin-top:3px}
+.hero{padding:7px;overflow:hidden}
+#earth{display:block;width:100%;height:auto;border-radius:18px;background:#01050b}
+.infoGrid{display:grid;grid-template-columns:1.2fr .8fr;gap:10px;margin-top:10px}
+.overlay{background:#020b18e8;border:1px solid #168cff88;border-radius:15px;padding:13px}
+.citytitle{font-size:25px;font-weight:950}
+.cards{grid-template-columns:repeat(4,1fr)}
+.metric{background:#041426;border:1px solid #145b94;border-radius:16px;padding:13px}
+.label{color:var(--muted);font-size:13px}.value{font-size:23px;font-weight:900;margin-top:5px}
+.timeline{height:13px;border-radius:20px;margin:14px 4px;background:linear-gradient(90deg,#06152d,#176cff,#ffd43b,#ff6a33,#176cff,#06152d);position:relative}
+.knob{position:absolute;top:50%;width:25px;height:25px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);box-shadow:0 0 20px #fff}
+.controls{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
+.sectionTitle{font-size:24px;font-weight:900;margin:4px 0 12px}
+.note{font-size:13px;color:var(--muted);line-height:1.45}
+.hidden{display:none!important}
+@media(max-width:800px){.tabs{grid-template-columns:repeat(2,1fr)}.cities{grid-template-columns:repeat(3,1fr)}.cards{grid-template-columns:repeat(2,1fr)}.controls{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:520px){header{align-items:flex-start}.live{font-size:12px}.cities{grid-template-columns:repeat(2,1fr)}.cards{grid-template-columns:1fr 1fr}.controls{grid-template-columns:repeat(2,1fr)}.infoGrid{grid-template-columns:1fr}.brand{font-size:34px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div>
+    <div class="brand">🌍 Astro Ibiza</div>
+    <div class="sub">Observatorio 3.0 · Tierra · Sol · Luna · terminador · tiempo real</div>
+  </div>
+  <div class="live">🟢 EN TIEMPO REAL<br><b id="topClock">--:--:--</b><br><span id="topDate">--</span></div>
+</header>
+
+<div class="tabs">
+<button class="tab active" onclick="view('global',this)">🌐 Vista global</button>
+<button class="tab" onclick="view('sim',this)">◷ Simulación</button>
+<button class="tab" onclick="view('moon',this)">🌙 Luna</button>
+<button class="tab" onclick="view('data',this)">📊 Datos</button>
+</div>
+
+<section id="global">
+<div class="panel">
+  <div class="searchrow">
+    <input id="search" placeholder="🔎 Buscar ciudad… prueba Nueva York" oninput="filterCities()">
+    <button onclick="setNow()">📍 AHORA</button>
+  </div>
+  <div class="cities" id="cities"></div>
+</div>
+
+<div class="panel hero">
+  <canvas id="earth" width="1200" height="760"></canvas>
+</div>
+
+<div class="infoGrid">
+  <div class="overlay">
+    <div class="citytitle" id="selectedName">📍 Ibiza</div>
+    <div class="muted" id="selectedCountry">España · Europe/Madrid</div>
+    <hr>
+    <div>🕐 Hora local: <b id="cityTime">--:--:--</b></div>
+    <div id="cityState">☀️ Día</div>
+    <div>🌅 Amanecer: <b id="sunrise">--:--</b> · 🌇 Atardecer: <b id="sunset">--:--</b></div>
+  </div>
+  <div class="overlay">
+    <b>☀️ Sol sobre la ciudad</b>
+    <div>Altura: <b id="alt">--°</b></div>
+    <div>Azimut: <b id="az">--°</b></div>
+    <div class="muted">El terminador se recalcula continuamente con la fecha y hora seleccionadas.</div>
+  </div>
+</div>
+
+<div class="panel">
+<div class="cards">
+<div class="metric"><div class="label">🌍 Zona iluminada</div><div class="value" id="dayState">--</div></div>
+<div class="metric"><div class="label">📍 Coordenadas</div><div class="value" id="coords">--</div></div>
+<div class="metric"><div class="label">☀️ Punto subsolar</div><div class="value" id="subsolar">--</div></div>
+<div class="metric"><div class="label">🧭 Terminador</div><div class="value">Dinámico</div></div>
+</div>
+<div class="timeline"><div class="knob" id="knob"></div></div>
+<div class="note">La mitad iluminada cambia con la posición real del Sol. El marcador de cada ciudad permite comprobar si allí es de día, de noche, amaneciendo o anocheciendo.</div>
+</div>
+</section>
+
+<section id="sim" class="hidden">
+<div class="panel"><div class="sectionTitle">◷ Máquina del tiempo</div>
+<div class="controls">
+<button onclick="shift(-720)">−12 h</button><button onclick="shift(-360)">−6 h</button><button onclick="shift(-60)">−1 h</button><button onclick="setNow()">AHORA</button>
+<button onclick="shift(60)">+1 h</button><button onclick="shift(360)">+6 h</button><button onclick="shift(720)">+12 h</button>
+</div>
+<div class="timeline"><div class="knob" id="simKnob"></div></div>
+<p class="note" id="simInfo">Usando hora real.</p></div>
+</section>
+
+<section id="moon" class="hidden">
+<div class="panel"><div class="sectionTitle">🌙 Luna</div><div class="cards">
+<div class="metric"><div class="label">Fase</div><div class="value" id="moonPhase">--</div></div>
+<div class="metric"><div class="label">Iluminación</div><div class="value" id="moonIllum">--</div></div>
+<div class="metric"><div class="label">Edad de la Luna</div><div class="value" id="moonAge">--</div></div>
+<div class="metric"><div class="label">Fecha</div><div class="value" id="moonDate">--</div></div>
+</div></div>
+</section>
+
+<section id="data" class="hidden">
+<div class="panel"><div class="sectionTitle">📊 Datos astronómicos</div><div class="cards">
+<div class="metric"><div class="label">Altura del Sol</div><div class="value" id="dAlt">--</div></div>
+<div class="metric"><div class="label">Azimut del Sol</div><div class="value" id="dAz">--</div></div>
+<div class="metric"><div class="label">Ciudad</div><div class="value" id="dCity">Ibiza</div></div>
+<div class="metric"><div class="label">Motor</div><div class="value">Local</div></div>
+</div></div>
+</section>
+</div>
+
+<script>
+const cities=[
+{name:"Ibiza",country:"España",lat:38.98,lon:1.43,tz:"Europe/Madrid",flag:"🇪🇸"},
+{name:"Nueva York",country:"Estados Unidos",lat:40.71,lon:-74.01,tz:"America/New_York",flag:"🇺🇸"},
+{name:"Londres",country:"Reino Unido",lat:51.51,lon:-0.13,tz:"Europe/London",flag:"🇬🇧"},
+{name:"Madrid",country:"España",lat:40.42,lon:-3.70,tz:"Europe/Madrid",flag:"🇪🇸"},
+{name:"Tokio",country:"Japón",lat:35.68,lon:139.69,tz:"Asia/Tokyo",flag:"🇯🇵"},
+{name:"Sídney",country:"Australia",lat:-33.87,lon:151.21,tz:"Australia/Sydney",flag:"🇦🇺"},
+{name:"Dubái",country:"Emiratos Árabes",lat:25.20,lon:55.27,tz:"Asia/Dubai",flag:"🇦🇪"},
+{name:"Los Ángeles",country:"Estados Unidos",lat:34.05,lon:-118.24,tz:"America/Los_Angeles",flag:"🇺🇸"},
+{name:"Ciudad de México",country:"México",lat:19.43,lon:-99.13,tz:"America/Mexico_City",flag:"🇲🇽"},
+{name:"Bogotá",country:"Colombia",lat:4.71,lon:-74.07,tz:"America/Bogota",flag:"🇨🇴"},
+{name:"Buenos Aires",country:"Argentina",lat:-34.60,lon:-58.38,tz:"America/Argentina/Buenos_Aires",flag:"🇦🇷"},
+{name:"Pekín",country:"China",lat:39.90,lon:116.40,tz:"Asia/Shanghai",flag:"🇨🇳"}
+];
+let selected=cities[0],simDate=null;
+
+const $=id=>document.getElementById(id);
+const rad=x=>x*Math.PI/180;
+const deg=x=>x*180/Math.PI;
+const norm=x=>((x%360)+360)%360;
+
+function fmtTime(d,tz){return new Intl.DateTimeFormat("es-ES",{timeZone:tz,hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).format(d)}
+function fmtDate(d,tz){return new Intl.DateTimeFormat("es-ES",{timeZone:tz,weekday:"long",day:"2-digit",month:"long",year:"numeric"}).format(d)}
+function jd(d){return d.getTime()/86400000+2440587.5}
+
+function solar(d,lat,lon){
+ const n=jd(d)-2451545;
+ const g=rad(357.529+0.98560028*n);
+ const q=rad(280.459+0.98564736*n);
+ const L=q+rad(1.915)*Math.sin(g)+rad(.020)*Math.sin(2*g);
+ const e=rad(23.439-0.00000036*n);
+ const dec=Math.asin(Math.sin(e)*Math.sin(L));
+ const ra=Math.atan2(Math.cos(e)*Math.sin(L),Math.cos(L));
+ const gst=rad(280.46061837+360.98564736629*n);
+ const H=((gst+rad(lon)-ra+Math.PI)%(2*Math.PI))-Math.PI;
+ const p=rad(lat);
+ const alt=Math.asin(Math.sin(p)*Math.sin(dec)+Math.cos(p)*Math.cos(dec)*Math.cos(H));
+ const az=Math.atan2(Math.sin(H),Math.cos(H)*Math.sin(p)-Math.tan(dec)*Math.cos(p));
+ return {dec,H,alt:deg(alt),az:norm(deg(az)+180),subLat:deg(dec),subLon:norm(-deg(H)+180)-180};
+}
+
+function events(d,lat,lon){
+ const base=new Date(d);base.setHours(12,0,0,0);
+ let rise=null,set=null,last=null;
+ for(let m=-900;m<=900;m+=3){
+   const t=new Date(base.getTime()+m*60000);
+   const h=solar(t,lat,lon).alt+0.833;
+   if(last!==null){
+     if(!rise&&last<0&&h>=0)rise=t;
+     if(!set&&last>0&&h<=0)set=t;
+   }
+   last=h;
+ }
+ return {rise,set};
+}
+
+function moon(d){
+ const syn=29.530588853, known=Date.UTC(2000,0,6,18,14,0);
+ const age=((d.getTime()-known)/86400000%syn+syn)%syn;
+ const illum=(1-Math.cos(2*Math.PI*age/syn))/2;
+ const names=["Luna nueva","Creciente","Cuarto creciente","Gibosa creciente","Luna llena","Gibosa menguante","Cuarto menguante","Menguante"];
+ return {age,illum,name:names[Math.round(age/syn*8)%8]};
+}
+
+function renderCities(){
+ const q=$("search").value.toLowerCase().trim();
+ $("cities").innerHTML=cities.filter(c=>c.name.toLowerCase().includes(q)).map(c=>
+ `<button class="city ${c===selected?"active":""}" onclick="selectCity(${cities.indexOf(c)})">${c.flag} ${c.name}<small>${fmtTime(simDate||new Date(),c.tz)}</small></button>`
+ ).join("");
+}
+function selectCity(i){selected=cities[i];render()}
+
+function drawEarth(d){
+ const c=$("earth"),x=c.getContext("2d"),W=c.width,H=c.height,cx=W/2,cy=H*.56,R=Math.min(W*.40,H*.38);
+ const s=solar(d,selected.lat,selected.lon);
+
+ let bg=x.createRadialGradient(cx,cy,R*.1,cx,cy,R*1.8);
+ bg.addColorStop(0,"#174c73");bg.addColorStop(.55,"#071d36");bg.addColorStop(1,"#01050b");
+ x.fillStyle=bg;x.fillRect(0,0,W,H);
+
+ // estrellas fijas: sin parpadeos
+ let seed=12345;
+ function rnd(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}
+ for(let i=0;i<360;i++){x.fillStyle=`rgba(255,255,255,${.15+rnd()*.55})`;x.beginPath();x.arc(rnd()*W,rnd()*H,rnd()*1.6+.2,0,7);x.fill()}
+
+ // atmósfera
+ x.save();x.shadowColor="#299dff";x.shadowBlur=28;x.strokeStyle="#58baff";x.lineWidth=10;
+ x.beginPath();x.ellipse(cx,cy,R,R*.62,0,0,7);x.stroke();x.restore();
+
+ x.save();x.beginPath();x.ellipse(cx,cy,R,R*.62,0,0,7);x.clip();
+
+ // océano + iluminación real
+ x.fillStyle="#075985";x.fillRect(cx-R,cy-R*.62,2*R,1.24*R);
+ for(let yy=-R*.62;yy<=R*.62;yy+=6){
+   for(let xx=-R;xx<=R;xx+=6){
+     const a=xx/R,b=yy/(R*.62),q=a*a+b*b;
+     if(q>1)continue;
+     const lat=Math.asin(b)*180/Math.PI;
+     const lon=deg(Math.atan2(a,Math.sqrt(Math.max(.0001,1-q))));
+     const Hs=rad(lon)-s.H;
+     const illum=Math.sin(rad(lat))*Math.sin(s.dec)+Math.cos(rad(lat))*Math.cos(s.dec)*Math.cos(Hs);
+     const shade=illum>0?1:0;
+     x.fillStyle=shade?`rgba(35,160,205,${.18+illum*.20})`:`rgba(0,4,14,${.68+Math.min(.25,-illum)})`;
+     x.fillRect(cx+xx-3,cy+yy-3,6,6);
+   }
+ }
+
+ // stylised continents positioned consistently
+ const land="#39a765";
+ const shapes=[
+ [[-.82,-.02],[-.67,-.15],[-.53,-.08],[-.56,.08],[-.73,.18],[-.88,.09]],
+ [[-.43,.08],[-.25,.04],[-.13,.25],[-.21,.50],[-.37,.31]],
+ [[-.13,-.13],[.03,-.19],[.20,-.08],[.31,.05],[.20,.20],[.02,.15]],
+ [[.28,-.08],[.47,-.18],[.67,-.06],[.59,.13],[.40,.11]],
+ [[.62,.20],[.83,.17],[.87,.32],[.70,.43]]
+ ];
+ x.fillStyle=land;
+ for(const p of shapes){
+   x.beginPath();p.forEach((v,i)=>{const X=cx+v[0]*R,Y=cy+v[1]*R*.62;i?x.lineTo(X,Y):x.moveTo(X,Y)});x.closePath();x.fill();
+ }
+
+ // Day/night terminator: sample the actual solar geometry over the globe.
+ x.save();x.strokeStyle="#ffd43b";x.lineWidth=4;x.setLineDash([14,10]);x.shadowColor="#ffd43b";x.shadowBlur=8;x.beginPath();
+ let started=false;
+ for(let lat=-90;lat<=90;lat+=1){
+   const z=-Math.tan(rad(lat))*Math.tan(s.dec);
+   if(Math.abs(z)>1)continue;
+   const h=Math.acos(z);
+   const lon=-s.H+h;
+   const rr=Math.cos(rad(lat));
+   const X=cx+Math.sin(lon)*rr*R;
+   const Y=cy-Math.cos(lon)*rr*R*.62;
+   if(!started){x.moveTo(X,Y);started=true}else x.lineTo(X,Y);
+ }
+ x.stroke();x.restore();
+
+ // selected city marker (visual reference)
+ const mx=cx+Math.sin(rad(selected.lon-s.subLon))*Math.cos(rad(selected.lat))*R*.72;
+ const my=cy-Math.sin(rad(selected.lat-s.subLat))*R*.48;
+ x.fillStyle="#ff4d7d";x.beginPath();x.arc(mx,my,9,0,7);x.fill();
+ x.strokeStyle="#fff";x.lineWidth=2;x.stroke();
+ x.fillStyle="#fff";x.font="900 21px system-ui";x.fillText(selected.name,mx+14,my+7);
+
+ x.restore();
+
+ // Sun and rays: its position is tied to the current subsolar point.
+ const sx=cx+Math.sin(rad(s.subLon))*R*.98;
+ const sy=cy-R*.88-Math.sin(rad(s.subLat))*40;
+ x.save();x.strokeStyle="rgba(255,212,59,.28)";x.lineWidth=2;
+ for(let i=-2;i<=2;i++){x.beginPath();x.moveTo(sx-80,sy+i*12);x.lineTo(cx+R*.55,cy-R*.05+i*45);x.stroke()}x.restore();
+ x.save();x.shadowColor="#ffd43b";x.shadowBlur=48;x.fillStyle="#ffd43b";x.beginPath();x.arc(sx,sy,28,0,7);x.fill();x.restore();
+ x.fillStyle="#fff";x.font="900 23px system-ui";x.fillText("☀️ SOL",sx-34,sy-42);
+
+ x.fillStyle="#fff";x.font="900 18px system-ui";x.fillText("☀️ DÍA",26,34);
+ x.fillStyle="#9db6d0";x.fillText("🌙 NOCHE",26,H-24);
+ x.fillText(`Subsolar: ${s.subLat.toFixed(1)}° / ${s.subLon.toFixed(1)}°`,W-285,H-24);
+}
+
+function render(){
+ const now=simDate||new Date(),s=solar(now,selected.lat,selected.lon),ev=events(now,selected.lat,selected.lon),m=moon(now);
+ $("topClock").textContent=fmtTime(now,selected.tz);
+ $("topDate").textContent=fmtDate(now,selected.tz);
+ $("selectedName").textContent=selected.flag+" "+selected.name;
+ $("selectedCountry").textContent=selected.country+" · "+selected.tz;
+ $("cityTime").textContent=fmtTime(now,selected.tz);
+ $("cityState").textContent=s.alt>0?"☀️ Día":"🌙 Noche";
+ $("sunrise").textContent=ev.rise?fmtTime(ev.rise,selected.tz):"--:--";
+ $("sunset").textContent=ev.set?fmtTime(ev.set,selected.tz):"--:--";
+ $("alt").textContent=s.alt.toFixed(1)+"°";
+ $("az").textContent=s.az.toFixed(1)+"°";
+ $("dayState").textContent=s.alt>0?"DÍA":"NOCHE";
+ $("coords").textContent=selected.lat.toFixed(2)+"°, "+selected.lon.toFixed(2)+"°";
+ $("subsolar").textContent=s.subLat.toFixed(1)+"° / "+s.subLon.toFixed(1)+"°";
+ $("dAlt").textContent=s.alt.toFixed(1)+"°";
+ $("dAz").textContent=s.az.toFixed(1)+"°";
+ $("dCity").textContent=selected.name;
+ $("moonPhase").textContent=m.name;
+ $("moonIllum").textContent=Math.round(m.illum*100)+"%";
+ $("moonAge").textContent=m.age.toFixed(1)+" días";
+ $("moonDate").textContent=fmtDate(now,selected.tz);
+ $("simInfo").textContent=simDate?("Simulando: "+fmtDate(now,selected.tz)+" · "+fmtTime(now,selected.tz)):"Usando hora real.";
+ drawEarth(now);renderCities();
+}
+function setNow(){simDate=null;render()}
+function shift(min){let d=simDate?new Date(simDate):new Date();d.setMinutes(d.getMinutes()+min);simDate=d;render()}
+function filterCities(){renderCities()}
+function view(id,btn){["global","sim","moon","data"].forEach(x=>$(x).classList.toggle("hidden",x!==id));document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));btn.classList.add("active")}
+render();
+setInterval(()=>{if(!simDate)render()},1000);
+</script>
+</body>
+</html>
