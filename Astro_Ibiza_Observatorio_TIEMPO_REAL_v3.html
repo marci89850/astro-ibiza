@@ -151,7 +151,10 @@ const cities=[
 let selected=cities[0],simDate=null;let landGeo = null;
 
 fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/land-50m.json")
-  .then(r => r.json())
+  .then(r => {
+    if (!r.ok) throw new Error("Error HTTP " + r.status);
+    return r.json();
+  })
   .then(data => {
     landGeo = topojson.feature(data, data.objects.land);
     render();
