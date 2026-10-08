@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#020812">
-<title>Astro Ibiza — Observatorio en tiempo real</title>
+<title>Astro Ibiza — Observatorio en tiempo real</title><script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 <style>
 :root{--bg:#020812;--panel:#06182c;--line:#168cff;--text:#eef7ff;--muted:#9db6d0;--gold:#ffd43b}
 *{box-sizing:border-box}
@@ -146,7 +147,15 @@ const cities=[
 {name:"Buenos Aires",country:"Argentina",lat:-34.60,lon:-58.38,tz:"America/Argentina/Buenos_Aires",flag:"🇦🇷"},
 {name:"Pekín",country:"China",lat:39.90,lon:116.40,tz:"Asia/Shanghai",flag:"🇨🇳"}
 ];
-let selected=cities[0],simDate=null;
+let selected=cities[0],simDate=null;let landGeo = null;
+
+fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/land-50m.json")
+  .then(r => r.json())
+  .then(data => {
+    landGeo = topojson.feature(data, data.objects.land);
+    render();
+  })
+  .catch(err => console.error("Error cargando continentes:", err));
 
 const $=id=>document.getElementById(id);
 const rad=x=>x*Math.PI/180;
@@ -239,18 +248,26 @@ function drawEarth(d){
    }
  }
 
- // stylised continents positioned consistently
- const land="#39a765";
- const shapes=[
- [[-.82,-.02],[-.67,-.15],[-.53,-.08],[-.56,.08],[-.73,.18],[-.88,.09]],
- [[-.43,.08],[-.25,.04],[-.13,.25],[-.21,.50],[-.37,.31]],
- [[-.13,-.13],[.03,-.19],[.20,-.08],[.31,.05],[.20,.20],[.02,.15]],
- [[.28,-.08],[.47,-.18],[.67,-.06],[.59,.13],[.40,.11]],
- [[.62,.20],[.83,.17],[.87,.32],[.70,.43]]
- ];
- x.fillStyle=land;
- for(const p of shapes){
-   x.beginPath();p.forEach((v,i)=>{const X=cx+v[0]*R,Y=cy+v[1]*R*.62;i?x.lineTo(X,Y):x.moveTo(X,Y)});x.closePath();x.fill();
+ // CONTINENTES REALES
+if (window.landGeo) {
+  x.save();
+
+  const projection = d3.geoOrthographic()
+    .scale(R)
+    .translate([cx, cy])
+    .rotate([s.subLon, -s.subLat])
+    .clipAngle(90);
+
+  const path = d3.geoPath(projection, x);
+
+  x.beginPath();
+  path(window.landGeo);
+
+  x.fillStyle = "#39a765";
+  x.fill();
+
+  x.restore();
+}
  }
 
  // Day/night terminator: sample the actual solar geometry over the globe.
