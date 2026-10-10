@@ -214,7 +214,7 @@ function draw(){
  // sun position in sky relative to subsolar longitude
  const sx=cx+Math.sin(rad(s.subLon))*rx*1.18, sy=cy-radToY(s.dec,ry)*1.0-ry*.92;
  const sg=ctx.createRadialGradient(sx,sy,3,sx,sy,55);sg.addColorStop(0,"#fff");sg.addColorStop(.25,"#ffd84d");sg.addColorStop(1,"rgba(255,185,0,0)");
- ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sx,sy,60,0,TAU);ctx.fill();ctx.fillStyle="#ffd84d";ctx.beginPath();ctx.arc(sx,sy,25,0,TAU);ctx.fill();
+ ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sx,sy,38,0,TAU);ctx.fill();ctx.fillStyle="#ffd84d";ctx.beginPath();ctx.arc(sx,sy,25,0,TAU);ctx.fill();
  ctx.font="800 17px -apple-system";ctx.fillStyle="#fff";ctx.fillText("☀ SOL",sx-28,sy-38);
  // labels
  ctx.font="700 16px -apple-system";ctx.fillStyle="#eaf6ff";ctx.fillText("DÍA",24,38);ctx.fillText("NOCHE",24,h-24);
